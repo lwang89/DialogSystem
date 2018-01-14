@@ -104,6 +104,7 @@ function handleMessage(sender_psid, received_message) {
     response = {
       "text": `You sent the message: "${received_message.text}". Now send me an image!`
     }
+    console.log('pos tagger is working now!!!!');
   } else if (received_message.attachments) {
   
     // Gets the URL of the message attachment
