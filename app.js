@@ -17,6 +17,9 @@ const
   express = require('express'),
   body_parser = require('body-parser'),
   app = express().use(body_parser.json()); // creates express http server
+const DateDiff = require('date-diff');
+// const weather = require('./weather.js');
+
 
 const PAGE_ACCESS_TOKEN = "EAABkGNc9ryABALnJOIQaeqn3GwLppaj4CcjCWIDWVQZBUDiRBzNL8WuS58WZAELoUxYxJcjZAXqAnWg7Or9oe6G9aCNF0qnvZAZByO1WKCF3BZBCsU2JehdwQorySKGy8DgxD3xWJrj6Q7qn3PKNjL4ZAuENaKiBbjBzyJYoxXBpk6hLUH1bMATPGzt2mKfUYYZD";
 
@@ -38,7 +41,54 @@ app.post('/webhook', (req, res) => {
       // Get the webhook event. entry.messaging is an array, but 
       // will only ever contain one event, so we get index 0
       let webhook_event = entry.messaging[0];
-      console.log(webhook_event);
+      console.log(webhook_event.message.nlp.entities);
+      
+      
+      let entity = webhook_event.message.nlp.entities
+      
+      console.log('*********test datetime: ' + entity.datetime[0].value);
+      console.log('*********test location: ' + entity.location[0].value);
+      
+      let query = { "time" : null, 
+                   "location": null,
+                   "weather": {} };
+      if (typeof entity.datetime != 'undefined' && entity.datetime.length > 0 ) {
+        query.time = entity.datetime[0].value;
+      }
+      
+      if (typeof entity.location != 'undefined' && entity.location.length > 0 ) {
+        query.location = entity.location[0].value;
+      }
+      
+//         console.log('type: ' + typeof query.time);
+//         console.log('type: ' + typeof query.location);
+      
+//         console.log('true or false: ' + query.time != null);
+//         console.log('true or false: ' + query.location != null);
+//         console.log('true or false: ' + query.time != null && query.location != null);
+      
+      if (query.time != null && query.location != null)  {
+        //TODO query map api
+        let now = new Date();
+        let timestamp = Date.parse(query.time);
+        let queryDate = new Date(timestamp);
+        // console.log('now:' + now);
+        // console.log('query: ' + queryDate);
+        
+        var diff = new DateDiff(now, queryDate);
+        
+        console.log(diff.days());
+        if (diff.days() <= 5)  {
+          //TODO
+          weather
+          console.log('query');
+          
+        }
+        
+        console.log('**************');
+        // console.log(query.time);
+        // console.log(query.location);
+      }
       
       // Get the sender PSID
       let sender_psid = webhook_event.sender.id;
@@ -186,4 +236,8 @@ function callSendAPI(sender_psid, response) {
     }
   }); 
   
+}
+
+function firstEntity(nlp, name) {
+  return nlp && nlp.entities && nlp.entities[name] && nlp.entities[name][0];
 }
