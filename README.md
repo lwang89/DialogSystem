@@ -1,5 +1,5 @@
 
 
 ## Install
-npm install pos
-npm install request --save
+npm install pos</br>
+npm install request --save</br>
