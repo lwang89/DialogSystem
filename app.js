@@ -18,7 +18,7 @@ const
   body_parser = require('body-parser'),
   app = express().use(body_parser.json()); // creates express http server
 const DateDiff = require('date-diff');
-// const weather = require('./weather.js');
+const weather = require('./weather.js');
 
 
 const PAGE_ACCESS_TOKEN = "EAABkGNc9ryABALnJOIQaeqn3GwLppaj4CcjCWIDWVQZBUDiRBzNL8WuS58WZAELoUxYxJcjZAXqAnWg7Or9oe6G9aCNF0qnvZAZByO1WKCF3BZBCsU2JehdwQorySKGy8DgxD3xWJrj6Q7qn3PKNjL4ZAuENaKiBbjBzyJYoxXBpk6hLUH1bMATPGzt2mKfUYYZD";
@@ -46,8 +46,8 @@ app.post('/webhook', (req, res) => {
       
       let entity = webhook_event.message.nlp.entities
       
-      console.log('*********test datetime: ' + entity.datetime[0].value);
-      console.log('*********test location: ' + entity.location[0].value);
+      // console.log('*********test datetime: ' + entity.datetime[0].value);
+      // console.log('*********test location: ' + entity.location[0].value);
       
       let query = { "time" : null, 
                    "location": null,
@@ -80,7 +80,7 @@ app.post('/webhook', (req, res) => {
         console.log(diff.days());
         if (diff.days() <= 5)  {
           //TODO
-          weather
+          weather.getWeather(query.location);
           console.log('query');
           
         }
