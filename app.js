@@ -52,6 +52,7 @@ app.post('/webhook', (req, res) => {
       let query = { "time" : null, 
                    "location": null,
                    "weather": {} };
+      
       if (typeof entity.datetime != 'undefined' && entity.datetime.length > 0 ) {
         query.time = entity.datetime[0].value;
       }
@@ -61,8 +62,7 @@ app.post('/webhook', (req, res) => {
       }
       
 //         console.log('type: ' + typeof query.time);
-//         console.log('type: ' + typeof query.location);
-      
+//         console.log('type: ' + typeof query.location);      
 //         console.log('true or false: ' + query.time != null);
 //         console.log('true or false: ' + query.location != null);
 //         console.log('true or false: ' + query.time != null && query.location != null);
@@ -74,34 +74,35 @@ app.post('/webhook', (req, res) => {
         let queryDate = new Date(timestamp);
         // console.log('now:' + now);
         // console.log('query: ' + queryDate);
-        
-        var diff = new DateDiff(now, queryDate);
-        
+        let diff = new DateDiff(now, queryDate);
         console.log(diff.days());
+        
         if (diff.days() <= 5)  {
           //TODO
-          weather.getWeather(query.location);
-          console.log('query');
-          
+          weather.getWeather(query.location).then(function(resp) {
+            query.weather = resp;
+            //console.log("query's weather is: " + JSON.stringify(query.weather));
+            
+            // Get the sender PSID
+            let sender_psid = webhook_event.sender.id;
+            console.log('Sender PSID: ' + sender_psid);
+      
+            // Check if the event is a message or postback and
+            // pass the event to the appropriate handler function
+
+            if (webhook_event.message) {
+              handleMessage(sender_psid, webhook_event.message,query);        
+            } else if (webhook_event.postback) {
+              handlePostback(sender_psid, webhook_event.postback);
+            }
+          }, function(err) {
+            console.log(err);
+          });
         }
-        
         console.log('**************');
         // console.log(query.time);
         // console.log(query.location);
-      }
-      
-      // Get the sender PSID
-      let sender_psid = webhook_event.sender.id;
-      console.log('Sender PSID: ' + sender_psid);
-      
-      // Check if the event is a message or postback and
-      // pass the event to the appropriate handler function
-      if (webhook_event.message) {
-        handleMessage(sender_psid, webhook_event.message);        
-      } else if (webhook_event.postback) {
-        handlePostback(sender_psid, webhook_event.postback);
-      }
-      
+      }  
     });
 
     // Return a '200 OK' response to all events
@@ -143,7 +144,7 @@ app.get('/webhook', (req, res) => {
 });
 
 // Handles messages events
-function handleMessage(sender_psid, received_message) {
+function handleMessage(sender_psid, received_message,query) {
   
   let response;
 
@@ -151,10 +152,12 @@ function handleMessage(sender_psid, received_message) {
   if (received_message.text) {    
 
     // Create the payload for a basic text message
+    //this part we will response first, then add nlg part to generate a sentence.
+    console.log("the weather we get is: " + JSON.stringify(query));
     response = {
-      "text": `You sent the message: "${received_message.text}". Now send me an image!`
+      "text": `You sent the message: "${received_message.text}. The weather today is ${query.weather.main.temp}". `
     }
-    console.log('pos tagger is working now!!!!');
+    //console.log('pos tagger is working now!!!!');
   } else if (received_message.attachments) {
   
     // Gets the URL of the message attachment
