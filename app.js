@@ -1,27 +1,49 @@
 /*
- * Starter Project for Messenger Platform Quick Start Tutorial
- *
- * Remix this as the starting point for following the Messenger Platform
- * quick start tutorial.
- *
- * https://developers.facebook.com/docs/messenger-platform/getting-started/quick-start/
+ * this aims to bulid a weather checking or forcasting chatbot.
  *
  */
 
 'use strict';
 
-
+const RedisServer = require('redis-server');
+ 
+// Simply pass the port that you want a Redis server to listen on.
+//const server = new RedisServer(6379);
+ 
+// server.open((err) => {
+//   if (err === null) {
+//     // You may now connect a client to the Redis
+//     // server bound to `server.port` (e.g. 6379).
+//   }
+// });
 // Imports dependencies and set up http server
 const 
   request = require('request'),
   express = require('express'),
   body_parser = require('body-parser'),
+  cookieParser = require('cookie-parser'),
+  session = require('express-session'),
   app = express().use(body_parser.json()); // creates express http server
+//var RedisStore = require('connect-redis')(express);
 const DateDiff = require('date-diff');
 const weather = require('./weather.js');
+// const redis = require('redis');
 
+app.use(cookieParser());
+// app.use(session({secret: "Shh, its a secret!"}));
+
+app.use(session({
+    secret: 'ssssssss',
+    // name: cookie_name,
+    //  store: sessionStore, // connect-mongo session store
+    proxy: true,
+    resave: true,
+    saveUninitialized: true
+}));
+var sess;
 
 const PAGE_ACCESS_TOKEN = "EAABkGNc9ryABALnJOIQaeqn3GwLppaj4CcjCWIDWVQZBUDiRBzNL8WuS58WZAELoUxYxJcjZAXqAnWg7Or9oe6G9aCNF0qnvZAZByO1WKCF3BZBCsU2JehdwQorySKGy8DgxD3xWJrj6Q7qn3PKNjL4ZAuENaKiBbjBzyJYoxXBpk6hLUH1bMATPGzt2mKfUYYZD";
+
 
 // Sets server port and logs message on success
 app.listen(process.env.PORT || 1337, () => console.log('webhook is listening'));
@@ -31,7 +53,13 @@ app.post('/webhook', (req, res) => {
 
   // Parse the request body from the POST
   let body = req.body;
-
+  sess=req.session;
+  sess.username;
+  sess.contact;
+  sess.time;
+  sess.location;
+  
+  console.log('##########' + typeof sess.username);
   // Check the webhook event is from a Page subscription
   if (body.object === 'page') {
 
@@ -41,21 +69,45 @@ app.post('/webhook', (req, res) => {
       // Get the webhook event. entry.messaging is an array, but 
       // will only ever contain one event, so we get index 0
       let webhook_event = entry.messaging[0];
+      
       console.log(webhook_event.message.nlp.entities);
-      
-      
+      //console.log(req.session.secret);
       let entity = webhook_event.message.nlp.entities
-      
       // console.log('*********test datetime: ' + entity.datetime[0].value);
       // console.log('*********test location: ' + entity.location[0].value);
       
-      let query = { "time" : null, 
+      let query = { 
+                   "time" : null, 
+                   "greetings" : null,
+                   "contact" : null,
                    "location": null,
-                   "weather": {} };
-      
+                   "weather": {} 
+                  };
+      //add these infos to a temp place
       if (typeof entity.datetime != 'undefined' && entity.datetime.length > 0 ) {
         query.time = entity.datetime[0].value;
+        if(typeof sess.time == 'undefined') {
+          sess.time = entity.datetime[0].value;
+          console.log("1111111111the time saved in the session is: " + sess.time);
+        } else if (sess.time == null) {
+          sess.time = entity.datetime[0].value;
+          console.log("2222222222222the time saved in the session is: " + sess.time);
+        } else {
+          //we have save time from the dialog
+          console.log("3333333the time saved in the session is: " + sess.time);
+        }
       }
+      
+      if (typeof entity.greetings != 'undefined' && entity.greetings.length > 0 ) {
+        query.greetings = entity.greetings[0].value;
+      }
+      //console.log(query.greetings);
+      
+      if (typeof entity.contact != 'undefined' && entity.contact.length > 0 ) {
+        query.contact = entity.contact[0].value;
+      }
+      
+      console.log(query.contact);
       
       if (typeof entity.location != 'undefined' && entity.location.length > 0 ) {
         query.location = entity.location[0].value;
@@ -100,8 +152,6 @@ app.post('/webhook', (req, res) => {
           });
         }
         console.log('**************');
-        // console.log(query.time);
-        // console.log(query.location);
       }  
     });
 
