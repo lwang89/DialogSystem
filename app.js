@@ -75,21 +75,9 @@ app.post('/webhook', (req, res) => {
       // Get the webhook event. entry.messaging is an array, but
       // will only ever contain one event, so we get index 0
       let webhook_event = entry.messaging[0];
-
-      // console.log(" messages we got is: " + JSON.stringify(webhook_event.message));
-
       //console.log(req.session.secret);
       let entity = webhook_event.message.nlp.entities
-      // console.log('*********test datetime: ' + entity.datetime[0].value);
-      // console.log('*********test location: ' + entity.location[0].value);
 
-      // let query = {
-      //              "time" : null,
-      //              "greetings" : null,
-      //              "contact" : null,
-      //              "location": null,
-      //              "weather": {}
-      //             };
       //add these infos to a temp place
       if (typeof entity.datetime != 'undefined' && entity.datetime.length > 0 ) {
         //query.time = entity.datetime[0].value;
@@ -129,40 +117,9 @@ app.post('/webhook', (req, res) => {
 //         console.log('true or false: ' + query.location != null);
 //         console.log('true or false: ' + query.time != null && query.location != null);
 
-      if (global.session.time != null && global.session.location != null)  {
-        //TODO query map api
-        let now = new Date();
-        let timestamp = Date.parse(global.session.time);
-        let queryDate = new Date(timestamp);
-        // console.log('now:' + now);
-        // console.log('query: ' + queryDate);
-        let diff = new DateDiff(now, queryDate);
-        console.log(diff.days());
+      generateWeatherResponse(global.session, webhook_event);
 
-        if (diff.days() <= 5)  {
-          //TODO
-          weather.getWeather(global.session.location).then(function(resp) {
-            global.session.weather = resp;
-            //console.log("query's weather is: " + JSON.stringify(query.weather));
 
-            // Get the sender PSID
-            let sender_psid = webhook_event.sender.id;
-            console.log('Sender PSID: ' + sender_psid);
-
-            // Check if the event is a message or postback and
-            // pass the event to the appropriate handler function
-
-            if (webhook_event.message) {
-              handleMessage(sender_psid, webhook_event.message,global.session);
-            } else if (webhook_event.postback) {
-              handlePostback(sender_psid, webhook_event.postback);
-            }
-          }, function(err) {
-            console.log(err);
-          });
-        }
-        console.log('**************');
-      }
     });
 
     // Return a '200 OK' response to all events
@@ -215,7 +172,7 @@ function handleMessage(sender_psid, received_message,query) {
     //this part we will response first, then add nlg part to generate a sentence.
     console.log("the weather we get is: " + JSON.stringify(query));
     response = {
-      "text": `You sent the message: "${received_message.text}. The weather today is ${query.weather.main.temp}". aaaaaaaaaaaaaa`
+      "text": `You sent the message: "${received_message.text}. The temp today is ${query.weather.main.temp}". sent from Leon's local machine.`
     }
     //console.log('pos tagger is working now!!!!');
   } else if (received_message.attachments) {
@@ -303,4 +260,41 @@ function callSendAPI(sender_psid, response) {
 
 function firstEntity(nlp, name) {
   return nlp && nlp.entities && nlp.entities[name] && nlp.entities[name][0];
+}
+
+function generateWeatherResponse(query, webhook_event) {
+  if (query.time != null && query.location != null)  {
+    //TODO query map api
+    let now = new Date();
+    let timestamp = Date.parse(query.time);
+    let queryDate = new Date(timestamp);
+    // console.log('now:' + now);
+    // console.log('query: ' + queryDate);
+    let diff = new DateDiff(now, queryDate);
+    console.log(diff.days());
+
+    if (diff.days() <= 5)  {
+      //TODO
+      weather.getWeather(query.location).then(function(resp) {
+        global.session.weather = resp;
+        //console.log("query's weather is: " + JSON.stringify(query.weather));
+
+        // Get the sender PSID
+        let sender_psid = webhook_event.sender.id;
+        console.log('Sender PSID: ' + sender_psid);
+
+        // Check if the event is a message or postback and
+        // pass the event to the appropriate handler function
+
+        if (webhook_event.message) {
+          handleMessage(sender_psid, webhook_event.message,global.session);
+        } else if (webhook_event.postback) {
+          handlePostback(sender_psid, webhook_event.postback);
+        }
+      }, function(err) {
+        console.log(err);
+      });
+    }
+    //console.log('**************');
+  }
 }
