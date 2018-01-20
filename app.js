@@ -59,11 +59,11 @@ app.post('/webhook', (req, res) => {
   // Parse the request body from the POST
   let body = req.body;
   console.log('body : '+(body));
-  sess=req.session;
-  sess.username;
-  sess.contact;
-  sess.time;
-  sess.location;
+  // sess=req.session;
+  // sess.username;
+  // sess.contact;
+  // sess.time;
+  // sess.location;
 
   //console.log('##########' + typeof sess.username);
   // Check the webhook event is from a Page subscription
@@ -83,23 +83,23 @@ app.post('/webhook', (req, res) => {
       // console.log('*********test datetime: ' + entity.datetime[0].value);
       // console.log('*********test location: ' + entity.location[0].value);
 
-      let query = {
-                   "time" : null,
-                   "greetings" : null,
-                   "contact" : null,
-                   "location": null,
-                   "weather": {}
-                  };
+      // let query = {
+      //              "time" : null,
+      //              "greetings" : null,
+      //              "contact" : null,
+      //              "location": null,
+      //              "weather": {}
+      //             };
       //add these infos to a temp place
       if (typeof entity.datetime != 'undefined' && entity.datetime.length > 0 ) {
-        query.time = entity.datetime[0].value;
+        //query.time = entity.datetime[0].value;
         console.log(global.session);
-        if(typeof global.session.time == 'undefined') {
+        if(typeof global.session.time == 'undefined' || global.session.time == null) {
           //sess.time = entity.datetime[0].value;
-          global.session.time = entity.datetime[0].value;
-          console.log("1111111111the the time we got is: " + entity.datetime[0].value);
-          console.log("1111111111the time saved in the session is: " + global.session.time);
-        } else if (global.session.time == null) {
+        //   global.session.time = entity.datetime[0].value;
+        //   console.log("1111111111the the time we got is: " + entity.datetime[0].value);
+        //   console.log("1111111111the time saved in the session is: " + global.session.time);
+        // } else if (global.session.time == null) {
           //sess.time = entity.datetime[0].value;
           global.session.time = entity.datetime[0].value;
           console.log("2222222222222the time saved in the session is: " + global.session.time);
@@ -110,17 +110,17 @@ app.post('/webhook', (req, res) => {
       }
 
       if (typeof entity.greetings != 'undefined' && entity.greetings.length > 0 ) {
-        query.greetings = entity.greetings[0].value;
+        global.session.greetings = entity.greetings[0].value;
       }
       //console.log(query.greetings);
 
       if (typeof entity.contact != 'undefined' && entity.contact.length > 0 ) {
-        query.contact = entity.contact[0].value;
+        global.session.contact = entity.contact[0].value;
       }
 
 
       if (typeof entity.location != 'undefined' && entity.location.length > 0 ) {
-        query.location = entity.location[0].value;
+        global.session.location = entity.location[0].value;
       }
 
 //         console.log('type: ' + typeof query.time);
@@ -129,10 +129,10 @@ app.post('/webhook', (req, res) => {
 //         console.log('true or false: ' + query.location != null);
 //         console.log('true or false: ' + query.time != null && query.location != null);
 
-      if (query.time != null && query.location != null)  {
+      if (global.session.time != null && global.session.location != null)  {
         //TODO query map api
         let now = new Date();
-        let timestamp = Date.parse(query.time);
+        let timestamp = Date.parse(global.session.time);
         let queryDate = new Date(timestamp);
         // console.log('now:' + now);
         // console.log('query: ' + queryDate);
@@ -141,8 +141,8 @@ app.post('/webhook', (req, res) => {
 
         if (diff.days() <= 5)  {
           //TODO
-          weather.getWeather(query.location).then(function(resp) {
-            query.weather = resp;
+          weather.getWeather(global.session.location).then(function(resp) {
+            global.session.weather = resp;
             //console.log("query's weather is: " + JSON.stringify(query.weather));
 
             // Get the sender PSID
@@ -153,7 +153,7 @@ app.post('/webhook', (req, res) => {
             // pass the event to the appropriate handler function
 
             if (webhook_event.message) {
-              handleMessage(sender_psid, webhook_event.message,query);
+              handleMessage(sender_psid, webhook_event.message,global.session);
             } else if (webhook_event.postback) {
               handlePostback(sender_psid, webhook_event.postback);
             }
