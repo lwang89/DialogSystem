@@ -15,7 +15,7 @@ const
 //var RedisStore = require('connect-redis')(express);
 const DateDiff = require('date-diff');
 const weather = require('./weather.js');
-
+app.use(cookieParser());
 //the now the ai can't recognize the bye greeting very well, we use a simple byeList
 const byeList = [
   "bye",
@@ -39,20 +39,6 @@ const greetingresponse = [
   "How are things",
   "How's it going"
 ]
-// const redis = require('redis');
-
-app.use(cookieParser());
-// app.use(session({secret: "Shh, its a secret!"}));
-
-app.use(session({
-  secret: 'ssssssss',
-  // name: cookie_name,
-  //  store: sessionStore, // connect-mongo session store
-  proxy: true,
-  resave: true,
-  saveUninitialized: true
-}));
-// var sess;
 global.session = {
   "time": null,
   "greetings": null,
@@ -61,12 +47,9 @@ global.session = {
   "bye": null,
   "weather": {}
 };
-
-//we will append greeting and weather response to it, then send it to handleMessage
 global.response = null;
 
 const PAGE_ACCESS_TOKEN = "EAAC8iZAUCVqkBADahe63LyijJ4C24TZAMPEkGbZBVKQKzLiUi74vGz5ictXXHSBZBC127y0ZCgf3pAldqowvE5Kc0Ttkmwc5b8zY2TTnICS482wZBLRQHSbHexC5N3msD1eJttV4ZA1kYaMqQZBO5R6o5hSKD2Tgsvi8Bj7te7zZC1SwdqZBgM8tlSwU90GmijDcMZD"
-
 
 // Sets server port and logs message on success
 app.listen(process.env.PORT || 1337, () => console.log('webhook is listening'));
@@ -77,61 +60,67 @@ app.post('/webhook', (req, res) => {
   let body = req.body;
   console.log('body : ' + (body));
 
-  //console.log('##########' + typeof sess.username);
   // Check the webhook event is from a Page subscription
   if (body.object === 'page') {
-
     // Iterate over each entry - there may be multiple if batched
     body.entry.forEach(function(entry) {
-
       // Get the webhook event. entry.messaging is an array, but
       // will only ever contain one event, so we get index 0
       let webhook_event = entry.messaging[0];
-      //console.log(req.session.secret);
-      let entity = webhook_event.message.nlp.entities
+      console.log(webhook_event);
+      // Get the sender PSID
+      let sender_psid = webhook_event.sender.id;
 
-      //save session infos to global.session
-      //add these infos to a temp place
-      if (typeof entity.datetime != 'undefined' && entity.datetime.length > 0) {
-        console.log(global.session);
-        if (typeof global.session.time == 'undefined' || global.session.time == null) {
-          global.session.time = entity.datetime[0].value;
-          console.log("2222222222222the time saved in the session is: " + global.session.time);
-        } else {
-          //we have save time from the dialog
-          console.log("3333333the time saved in the session is: " + global.session.time);
+      // we need to deal with attachment here, it will result in
+      if (webhook_event.message.attachments) {
+        response = {
+          "text": 'Sorry I do not wanna process audio or photo messages for now. Wanna have a beer?'
         }
-      }
+        callSendAPI(sender_psid, response);
+      } else if (webhook_event.message.text) {
+        let entity = webhook_event.message.nlp.entities;
 
-      if (typeof entity.greetings != 'undefined' && entity.greetings.length > 0) {
-        if (entity.greetings[0].confidence > 0.95) {
-          global.session.greetings = entity.greetings[0].value;
-          console.log(entity);
+        //save session infos to global.session
+        //add these infos to a temp place
+        if (typeof entity.datetime != 'undefined' && entity.datetime.length > 0) {
+          console.log(global.session);
+          if (typeof global.session.time == 'undefined' || global.session.time == null) {
+            global.session.time = entity.datetime[0].value;
+            console.log("2222222222222the time saved in the session is: " + global.session.time);
+          } else {
+            //we have save time from the dialog
+            console.log("3333333the time saved in the session is: " + global.session.time);
+          }
         }
-      }
 
-      if (typeof entity.contact != 'undefined' && entity.contact.length > 0) {
-        if (entity.contact[0].confidence > 0.92) {
-          global.session.contact = entity.contact[0].value;
-          console.log("the contact is: " + entity.contact);
+        if (typeof entity.greetings != 'undefined' && entity.greetings.length > 0) {
+          if (entity.greetings[0].confidence > 0.95) {
+            global.session.greetings = entity.greetings[0].value;
+            //console.log(entity);
+          }
         }
-      }
 
-      if (typeof entity.location != 'undefined' && entity.location.length > 0) {
-        if (entity.location[0].confidence > 0.90) {
-          global.session.location = entity.location[0].value;
+        if (typeof entity.contact != 'undefined' && entity.contact.length > 0) {
+          if (entity.contact[0].confidence > 0.92) {
+            global.session.contact = entity.contact[0].value;
+            console.log("the contact is: " + entity.contact);
+          }
         }
-      }
 
-      if (typeof entity.bye != 'undefined' && entity.bye.length > 0) {
-        if (entity.bye[0].confidence > 0.90) {
-          global.session.bye = entity.bye[0].value;
-          console.log("bye's value we get is: " + global.session.bye);
+        if (typeof entity.location != 'undefined' && entity.location.length > 0) {
+          if (entity.location[0].confidence > 0.90) {
+            global.session.location = entity.location[0].value;
+          }
         }
+
+        if (typeof entity.bye != 'undefined' && entity.bye.length > 0) {
+          if (entity.bye[0].confidence > 0.90) {
+            global.session.bye = entity.bye[0].value;
+            //console.log("bye's value we get is: " + global.session.bye);
+          }
+        }
+        generateResponse(global.session, webhook_event, global.response);
       }
-
-      generateResponse(global.session, webhook_event, global.response);
-
     });
 
     // Return a '200 OK' response to all events
@@ -190,37 +179,37 @@ function handleMessage(sender_psid, received_message, res) {
     cleanResponse(res);
     //console.log('pos tagger is working now!!!!');
   } else if (received_message.attachments) {
-    response = {
-      "text": 'Sorry I do not wanna process text messages for now. Wanna have a beer?'
-    }
-    // Gets the URL of the message attachment
-    // let attachment_url = received_message.attachments[0].payload.url;
-    //
     // response = {
-    //   "attachment": {
-    //     "type": "template",
-    //     "payload": {
-    //       "template_type": "generic",
-    //       "elements": [{
-    //         "title": "Is this the right picture?",
-    //         "subtitle": "Tap a button to answer.",
-    //         "image_url": attachment_url,
-    //         "buttons": [
-    //           {
-    //             "type": "postback",
-    //             "title": "Yes!",
-    //             "payload": "yes",
-    //           },
-    //           {
-    //             "type": "postback",
-    //             "title": "No!",
-    //             "payload": "no",
-    //           }
-    //         ],
-    //       }]
-    //     }
-    //   }
+    //   "text": 'Sorry I do not wanna process text messages for now. Wanna have a beer?'
     // }
+
+    //Gets the URL of the message attachment
+    let attachment_url = received_message.attachments[0].payload.url;
+
+    response = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": "Is this the right picture?",
+            "subtitle": "Tap a button to answer.",
+            "image_url": attachment_url,
+            "buttons": [{
+                "type": "postback",
+                "title": "Yes!",
+                "payload": "yes",
+              },
+              {
+                "type": "postback",
+                "title": "No!",
+                "payload": "no",
+              }
+            ],
+          }]
+        }
+      }
+    }
   }
 
   // Sends the response message
@@ -252,7 +241,6 @@ function handlePostback(sender_psid, received_postback) {
 
 // Sends response messages via the Send API
 function callSendAPI(sender_psid, response) {
-
   // Construct the message body
   let request_body = {
     "recipient": {
@@ -286,20 +274,10 @@ function firstEntity(nlp, name) {
 //append greeting and weather data to response
 //at last, send response to handleMessage,then clean response
 function generateResponse(query, webhook_event, res) {
-  generateGreetingResponse(query, webhook_event, res);
-
-  //generateWeatherResponse(global.session, webhook_event);
-  //sendResponse(global.session,webhook_event);
-}
-
-function generateGreetingResponse(query, webhook_event, res) {
   if (res === null) {
     //handle greeting firstly, append greeting response to global.response first.
     //if the greeting provided by user is bye, then finish the session then clean global.session
     if (query.bye) {
-      // append a random bye greeting to res
-      // append the contract
-      //clean global.session
       res = byeList[Math.floor(Math.random() * byeList.length)];
 
       if (query.contact != null) {
@@ -309,7 +287,6 @@ function generateGreetingResponse(query, webhook_event, res) {
       }
       cleanSessionData(query);
       console.log(res);
-      sendResponse(query, webhook_event, res);
     } else {
       // TODO
       // check if there is a greeting
@@ -323,42 +300,33 @@ function generateGreetingResponse(query, webhook_event, res) {
           } else {
             res = res + ", " + "what's your name? I'm a weather bot, can you provide the place and the time within five days?";
           }
-
         } else if (query.time != null && query.location === null) {
           if (query.contact != null) {
             res = res + ", " + query.contact + ". which place do you want to check the weather?";
           } else {
             res = res + ", " + ". which place do you want to check the weather?";
           }
-          // sendResponse(query, webhook_event, res);
         } else if (query.time === null && query.location != null) {
           if (query.contact != null) {
             res = res + ", " + query.contact + `. U wanna check today's weather or forcast within 5 days in ${query.location}?`;
           } else {
             res = res + ", " + `U wanna check today's weather or forcast within 5 days in ${query.location}?`;
           }
-          // sendResponse(query, webhook_event, res);
         } else {
           // TODO: generate weather
+          generateWeatherResponse(query, webhook_event);
           // TODO: generate res
           if (query.contact != null) {
-            generateWeatherResponse(query, webhook_event);
-            res = res + ", " + query.contact + `The temp today is ${query.weather.main.temp}. U can send "bye" to finish it or check other place's weather.`;
+            res = res + ", " + query.contact + `. The temp today is ${query.weather.main.temp} ℉ in ${query.location}. U can send "bye" to finish it or check other place's weather.`;
           } else {
-            res = res + ", " + `. The temp today is ${query.weather.main.temp}. U can send "bye" to finish it or check other place's weather.`;
+            res = res + ", " + `The temp today is ${query.weather.main.temp} ℉ in ${query.location}. U can send "bye" to finish it or check other place's weather.`;
           }
-          // TODO: clean weather
           cleanWeather(query);
-          // sendResponse(query, webhook_event, res);
         }
-        sendResponse(query, webhook_event, res);
       }
-
     }
-  } else {
-    //TODO the response is not null, need to send it
-    sendResponse(query, webhook_event, res);
   }
+  sendResponse(query, webhook_event, res);
 }
 
 // if user provide the time and the location, then wen can provide the weather, and erase the time and location we saved.
@@ -374,16 +342,19 @@ function generateWeatherResponse(query, webhook_event) {
     let diff = new DateDiff(now, queryDate);
     console.log("the difference between system date and user's set date is: " + diff.days());
 
-    if (diff.days() <= 5) {
-      //TODO
+    if (diff.days() <= 1) {
+      //TODO : check weather today
       weather.getWeather(query.location).then(function(resp) {
         query.weather = resp;
         //console.log("query's weather is: " + JSON.stringify(query.weather));
       }, function(err) {
         console.log(err);
       });
-    } else {}
-    //console.log('**************');
+    } else {
+      // TODO: check forcast
+
+    }
+
   }
 }
 
@@ -415,5 +386,8 @@ function cleanResponse(res) {
 }
 
 function cleanWeather(query) {
+  query.time = null;
+  query.location = null;
   query.weather = null;
+  //console.log("now the weather is:" + query.weather);
 }
