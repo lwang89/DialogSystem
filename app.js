@@ -5,7 +5,7 @@
 
 'use strict';
 
-const RedisServer = require('redis-server');
+//const RedisServer = require('redis-server');
 
 const
   request = require('request'),
@@ -107,23 +107,32 @@ app.post('/webhook', (req, res) => {
 
 
       if (typeof entity.greetings != 'undefined' && entity.greetings.length > 0 ) {
-        global.session.greetings = entity.greetings[0].value;
-        //console.log(entity);
+        if(entity.greetings[0].confidence > 0.95) {
+          global.session.greetings = entity.greetings[0].value;
+          console.log(entity);
+       }
       }
       //console.log(query.greetings);
 
       if (typeof entity.contact != 'undefined' && entity.contact.length > 0 ) {
-        global.session.contact = entity.contact[0].value;
+        if(entity.contact[0].confidence > 0.92) {
+          global.session.contact = entity.contact[0].value;
+          console.log("the contact is: " + entity.contact);
+        }
       }
 
 
       if (typeof entity.location != 'undefined' && entity.location.length > 0 ) {
-        global.session.location = entity.location[0].value;
+        if(entity.location[0].confidence > 0.90) {
+          global.session.location = entity.location[0].value;
+        }
       }
 
       if (typeof entity.bye != 'undefined' && entity.bye.length > 0 ) {
-        global.session.bye = entity.bye[0].value;
-        console.log("bye's value we get is: " + global.session.bye);
+        if(entity.bye[0].confidence > 0.90) {
+          global.session.bye = entity.bye[0].value;
+          console.log("bye's value we get is: " + global.session.bye);
+        }
       }
 
       generateResponse(global.session,webhook_event, global.response);
@@ -183,38 +192,40 @@ function handleMessage(sender_psid, received_message,res) {
       "text": res
       //"text": `You sent the message: "${received_message.text}. The temp today is ${query.weather.main.temp}". sent from Leon's local machine.`
     }
-    res = null;
+    cleanResponse(res);
     //console.log('pos tagger is working now!!!!');
   } else if (received_message.attachments) {
-
-    // Gets the URL of the message attachment
-    let attachment_url = received_message.attachments[0].payload.url;
-
     response = {
-      "attachment": {
-        "type": "template",
-        "payload": {
-          "template_type": "generic",
-          "elements": [{
-            "title": "Is this the right picture?",
-            "subtitle": "Tap a button to answer.",
-            "image_url": attachment_url,
-            "buttons": [
-              {
-                "type": "postback",
-                "title": "Yes!",
-                "payload": "yes",
-              },
-              {
-                "type": "postback",
-                "title": "No!",
-                "payload": "no",
-              }
-            ],
-          }]
-        }
-      }
+      "text": 'Sorry I do not wanna process text messages for now. Wanna have a beer?'
     }
+    // Gets the URL of the message attachment
+    // let attachment_url = received_message.attachments[0].payload.url;
+    //
+    // response = {
+    //   "attachment": {
+    //     "type": "template",
+    //     "payload": {
+    //       "template_type": "generic",
+    //       "elements": [{
+    //         "title": "Is this the right picture?",
+    //         "subtitle": "Tap a button to answer.",
+    //         "image_url": attachment_url,
+    //         "buttons": [
+    //           {
+    //             "type": "postback",
+    //             "title": "Yes!",
+    //             "payload": "yes",
+    //           },
+    //           {
+    //             "type": "postback",
+    //             "title": "No!",
+    //             "payload": "no",
+    //           }
+    //         ],
+    //       }]
+    //     }
+    //   }
+    // }
   }
 
   // Sends the response message
@@ -303,13 +314,28 @@ function generateGreetingResponse(query, webhook_event, res) {
       console.log(res);
       sendResponse(query, webhook_event, res);
     } else {
+      //TODO check if there is a greeting
+      if(query.greetings) {
+        console.log("greetings we get is: " + query.greetings);
+        console.log("query is: " + query);
+        if(query.time === null && query.location === null) {
+          res = greetingresponse[Math.floor(Math.random() * greetingresponse.length)];
+
+          if (query.contact != null) {
+            res = res + ", " + query.contact + ". I'm a weather bot, can you provide the place and the time within five days?";
+            sendResponse(query, webhook_event, res);
+          } else {
+            res = res + ", " + "what's your name? I'm a weather bot, can you provide the place and the time within five days?";
+            sendResponse(query, webhook_event, res);
+          }
+        }
+      }
 
     }
+  } else {
+    //TODO the response is not null, need to send it
 
-
-} else {
-  // the response is not null, need to send it
-}
+  }
 }
 
 // if user provide the time and the location, then wen can provide the weather, and erase the time and location we saved.
@@ -361,4 +387,8 @@ function cleanSessionData(query) {
   query.location = null;
   query.bye = null;
   query.weather = null;
+}
+
+function cleanResponse(res) {
+  res = null;
 }
