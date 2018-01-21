@@ -5,8 +5,6 @@
 
 'use strict';
 
-//const RedisServer = require('redis-server');
-
 const
   request = require('request'),
   express = require('express'),
@@ -47,22 +45,22 @@ app.use(cookieParser());
 // app.use(session({secret: "Shh, its a secret!"}));
 
 app.use(session({
-    secret: 'ssssssss',
-    // name: cookie_name,
-    //  store: sessionStore, // connect-mongo session store
-    proxy: true,
-    resave: true,
-    saveUninitialized: true
+  secret: 'ssssssss',
+  // name: cookie_name,
+  //  store: sessionStore, // connect-mongo session store
+  proxy: true,
+  resave: true,
+  saveUninitialized: true
 }));
 // var sess;
 global.session = {
-             "time" : null,
-             "greetings" : null,
-             "contact" : null,
-             "location": null,
-             "bye": null,
-             "weather": {}
-            };
+  "time": null,
+  "greetings": null,
+  "contact": null,
+  "location": null,
+  "bye": null,
+  "weather": {}
+};
 
 //we will append greeting and weather response to it, then send it to handleMessage
 global.response = null;
@@ -77,7 +75,7 @@ app.listen(process.env.PORT || 1337, () => console.log('webhook is listening'));
 app.post('/webhook', (req, res) => {
   // Parse the request body from the POST
   let body = req.body;
-  console.log('body : '+(body));
+  console.log('body : ' + (body));
 
   //console.log('##########' + typeof sess.username);
   // Check the webhook event is from a Page subscription
@@ -94,9 +92,9 @@ app.post('/webhook', (req, res) => {
 
       //save session infos to global.session
       //add these infos to a temp place
-      if (typeof entity.datetime != 'undefined' && entity.datetime.length > 0 ) {
+      if (typeof entity.datetime != 'undefined' && entity.datetime.length > 0) {
         console.log(global.session);
-        if(typeof global.session.time == 'undefined' || global.session.time == null) {
+        if (typeof global.session.time == 'undefined' || global.session.time == null) {
           global.session.time = entity.datetime[0].value;
           console.log("2222222222222the time saved in the session is: " + global.session.time);
         } else {
@@ -105,37 +103,34 @@ app.post('/webhook', (req, res) => {
         }
       }
 
-
-      if (typeof entity.greetings != 'undefined' && entity.greetings.length > 0 ) {
-        if(entity.greetings[0].confidence > 0.95) {
+      if (typeof entity.greetings != 'undefined' && entity.greetings.length > 0) {
+        if (entity.greetings[0].confidence > 0.95) {
           global.session.greetings = entity.greetings[0].value;
           console.log(entity);
-       }
+        }
       }
-      //console.log(query.greetings);
 
-      if (typeof entity.contact != 'undefined' && entity.contact.length > 0 ) {
-        if(entity.contact[0].confidence > 0.92) {
+      if (typeof entity.contact != 'undefined' && entity.contact.length > 0) {
+        if (entity.contact[0].confidence > 0.92) {
           global.session.contact = entity.contact[0].value;
           console.log("the contact is: " + entity.contact);
         }
       }
 
-
-      if (typeof entity.location != 'undefined' && entity.location.length > 0 ) {
-        if(entity.location[0].confidence > 0.90) {
+      if (typeof entity.location != 'undefined' && entity.location.length > 0) {
+        if (entity.location[0].confidence > 0.90) {
           global.session.location = entity.location[0].value;
         }
       }
 
-      if (typeof entity.bye != 'undefined' && entity.bye.length > 0 ) {
-        if(entity.bye[0].confidence > 0.90) {
+      if (typeof entity.bye != 'undefined' && entity.bye.length > 0) {
+        if (entity.bye[0].confidence > 0.90) {
           global.session.bye = entity.bye[0].value;
           console.log("bye's value we get is: " + global.session.bye);
         }
       }
 
-      generateResponse(global.session,webhook_event, global.response);
+      generateResponse(global.session, webhook_event, global.response);
 
     });
 
@@ -178,7 +173,7 @@ app.get('/webhook', (req, res) => {
 });
 
 // Handles messages events
-function handleMessage(sender_psid, received_message,res) {
+function handleMessage(sender_psid, received_message, res) {
 
   let response;
 
@@ -243,13 +238,16 @@ function handlePostback(sender_psid, received_postback) {
 
   // Set the response based on the postback payload
   if (payload === 'yes') {
-    response = { "text": "Thanks!" }
+    response = {
+      "text": "Thanks!"
+    }
   } else if (payload === 'no') {
-    response = { "text": "Oops, try sending another image." }
+    response = {
+      "text": "Oops, try sending another image."
+    }
   }
   // Send the message to acknowledge the postback
   callSendAPI(sender_psid, response);
-
 }
 
 // Sends response messages via the Send API
@@ -266,7 +264,9 @@ function callSendAPI(sender_psid, response) {
   // Send the HTTP request to the Messenger Platform
   request({
     "uri": "https://graph.facebook.com/v2.6/me/messages",
-    "qs": { "access_token": PAGE_ACCESS_TOKEN },
+    "qs": {
+      "access_token": PAGE_ACCESS_TOKEN
+    },
     "method": "POST",
     "json": request_body
   }, (err, res, body) => {
@@ -286,20 +286,17 @@ function firstEntity(nlp, name) {
 //append greeting and weather data to response
 //at last, send response to handleMessage,then clean response
 function generateResponse(query, webhook_event, res) {
-
   generateGreetingResponse(query, webhook_event, res);
 
   //generateWeatherResponse(global.session, webhook_event);
-
   //sendResponse(global.session,webhook_event);
 }
 
 function generateGreetingResponse(query, webhook_event, res) {
   if (res === null) {
-
     //handle greeting firstly, append greeting response to global.response first.
     //if the greeting provided by user is bye, then finish the session then clean global.session
-    if(query.bye) {
+    if (query.bye) {
       // append a random bye greeting to res
       // append the contract
       //clean global.session
@@ -314,34 +311,41 @@ function generateGreetingResponse(query, webhook_event, res) {
       console.log(res);
       sendResponse(query, webhook_event, res);
     } else {
-      //TODO check if there is a greeting
-      if(query.greetings) {
+      // TODO
+      // check if there is a greeting
+      if (query.greetings) {
         console.log("greetings we get is: " + query.greetings);
-        console.log("query is: " + query);
-        if(query.time === null && query.location === null) {
-          res = greetingresponse[Math.floor(Math.random() * greetingresponse.length)];
-
+        res = greetingresponse[Math.floor(Math.random() * greetingresponse.length)];
+        //console.log("query is: " + query);
+        if (query.time === null && query.location === null) {
           if (query.contact != null) {
             res = res + ", " + query.contact + ". I'm a weather bot, can you provide the place and the time within five days?";
-            sendResponse(query, webhook_event, res);
           } else {
             res = res + ", " + "what's your name? I'm a weather bot, can you provide the place and the time within five days?";
-            sendResponse(query, webhook_event, res);
           }
+          sendResponse(query, webhook_event, res);
+        } else if (query.time != null && query.location === null) {
+          if (query.contact != null) {
+            res = res + ", " + query.contact + ". which place do you want to check the weather?";
+
+          } else {
+            res = res + ", " + ". which place do you want to check the weather?";
+          }
+          sendResponse(query, webhook_event, res);
         }
       }
 
     }
   } else {
     //TODO the response is not null, need to send it
-
+    sendResponse(query, webhook_event, res);
   }
 }
 
 // if user provide the time and the location, then wen can provide the weather, and erase the time and location we saved.
 // if user only provide the time or the location or provide nothing, we should check with user
 function generateWeatherResponse(query, webhook_event) {
-  if (query.time != null && query.location != null)  {
+  if (query.time != null && query.location != null) {
     //TODO query map api
     let now = new Date();
     let timestamp = Date.parse(query.time);
@@ -351,7 +355,7 @@ function generateWeatherResponse(query, webhook_event) {
     let diff = new DateDiff(now, queryDate);
     console.log("the difference between system date and user's set date is: " + diff.days());
 
-    if (diff.days() <= 5)  {
+    if (diff.days() <= 5) {
       //TODO
       weather.getWeather(query.location).then(function(resp) {
         global.session.weather = resp;
@@ -374,7 +378,7 @@ function sendResponse(query, webhook_event, res) {
   // Check if the event is a message or postback and
   // pass the event to the appropriate handler function
   if (webhook_event.message) {
-    handleMessage(sender_psid, webhook_event.message,res);
+    handleMessage(sender_psid, webhook_event.message, res);
   } else if (webhook_event.postback) {
     handlePostback(sender_psid, webhook_event.postback);
   }
