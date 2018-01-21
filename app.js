@@ -7,16 +7,6 @@
 
 const RedisServer = require('redis-server');
 
-// Simply pass the port that you want a Redis server to listen on.
-//const server = new RedisServer(6379);
-
-// server.open((err) => {
-//   if (err === null) {
-//     // You may now connect a client to the Redis
-//     // server bound to `server.port` (e.g. 6379).
-//   }
-// });
-// Imports dependencies and set up http server
 const
   request = require('request'),
   express = require('express'),
@@ -27,6 +17,30 @@ const
 //var RedisStore = require('connect-redis')(express);
 const DateDiff = require('date-diff');
 const weather = require('./weather.js');
+
+//the now the ai can't recognize the bye greeting very well, we use a simple byeList
+const byeList = [
+  "bye",
+  "goodbye",
+  "byebye",
+  "bye bye",
+  "See you later",
+  "see ya later",
+  "see you soon",
+  "see ya soon",
+  "gotta go",
+  "see you next time",
+  "have a good one"
+]
+const greetingresponse = [
+  'hello',
+  'hi there',
+  "Hey! What's up?",
+  "How are you doing today?",
+  "How's everything?",
+  "How are things?",
+  "How's it going?"
+]
 // const redis = require('redis');
 
 app.use(cookieParser());
@@ -40,14 +54,19 @@ app.use(session({
     resave: true,
     saveUninitialized: true
 }));
-var sess;
+// var sess;
 global.session = {
              "time" : null,
              "greetings" : null,
              "contact" : null,
              "location": null,
+             "bye": null,
              "weather": {}
             };
+
+//we will append greeting and weather response to it, then send it to handleMessage
+global.response = null;
+
 const PAGE_ACCESS_TOKEN = "EAAC8iZAUCVqkBADahe63LyijJ4C24TZAMPEkGbZBVKQKzLiUi74vGz5ictXXHSBZBC127y0ZCgf3pAldqowvE5Kc0Ttkmwc5b8zY2TTnICS482wZBLRQHSbHexC5N3msD1eJttV4ZA1kYaMqQZBO5R6o5hSKD2Tgsvi8Bj7te7zZC1SwdqZBgM8tlSwU90GmijDcMZD"
 
 
@@ -59,11 +78,6 @@ app.post('/webhook', (req, res) => {
   // Parse the request body from the POST
   let body = req.body;
   console.log('body : '+(body));
-  // sess=req.session;
-  // sess.username;
-  // sess.contact;
-  // sess.time;
-  // sess.location;
 
   //console.log('##########' + typeof sess.username);
   // Check the webhook event is from a Page subscription
@@ -78,17 +92,11 @@ app.post('/webhook', (req, res) => {
       //console.log(req.session.secret);
       let entity = webhook_event.message.nlp.entities
 
+      //save session infos to global.session
       //add these infos to a temp place
       if (typeof entity.datetime != 'undefined' && entity.datetime.length > 0 ) {
-        //query.time = entity.datetime[0].value;
         console.log(global.session);
         if(typeof global.session.time == 'undefined' || global.session.time == null) {
-          //sess.time = entity.datetime[0].value;
-        //   global.session.time = entity.datetime[0].value;
-        //   console.log("1111111111the the time we got is: " + entity.datetime[0].value);
-        //   console.log("1111111111the time saved in the session is: " + global.session.time);
-        // } else if (global.session.time == null) {
-          //sess.time = entity.datetime[0].value;
           global.session.time = entity.datetime[0].value;
           console.log("2222222222222the time saved in the session is: " + global.session.time);
         } else {
@@ -97,8 +105,10 @@ app.post('/webhook', (req, res) => {
         }
       }
 
+
       if (typeof entity.greetings != 'undefined' && entity.greetings.length > 0 ) {
         global.session.greetings = entity.greetings[0].value;
+        //console.log(entity);
       }
       //console.log(query.greetings);
 
@@ -111,14 +121,12 @@ app.post('/webhook', (req, res) => {
         global.session.location = entity.location[0].value;
       }
 
-//         console.log('type: ' + typeof query.time);
-//         console.log('type: ' + typeof query.location);
-//         console.log('true or false: ' + query.time != null);
-//         console.log('true or false: ' + query.location != null);
-//         console.log('true or false: ' + query.time != null && query.location != null);
+      if (typeof entity.bye != 'undefined' && entity.bye.length > 0 ) {
+        global.session.bye = entity.bye[0].value;
+        console.log("bye's value we get is: " + global.session.bye);
+      }
 
-      generateWeatherResponse(global.session, webhook_event);
-
+      generateResponse(global.session,webhook_event, global.response);
 
     });
 
@@ -161,7 +169,7 @@ app.get('/webhook', (req, res) => {
 });
 
 // Handles messages events
-function handleMessage(sender_psid, received_message,query) {
+function handleMessage(sender_psid, received_message,res) {
 
   let response;
 
@@ -170,10 +178,12 @@ function handleMessage(sender_psid, received_message,query) {
 
     // Create the payload for a basic text message
     //this part we will response first, then add nlg part to generate a sentence.
-    console.log("the weather we get is: " + JSON.stringify(query));
+    //console.log("the weather we get is: " + JSON.stringify(query));
     response = {
-      "text": `You sent the message: "${received_message.text}. The temp today is ${query.weather.main.temp}". sent from Leon's local machine.`
+      "text": res
+      //"text": `You sent the message: "${received_message.text}. The temp today is ${query.weather.main.temp}". sent from Leon's local machine.`
     }
+    res = null;
     //console.log('pos tagger is working now!!!!');
   } else if (received_message.attachments) {
 
@@ -262,6 +272,48 @@ function firstEntity(nlp, name) {
   return nlp && nlp.entities && nlp.entities[name] && nlp.entities[name][0];
 }
 
+//append greeting and weather data to response
+//at last, send response to handleMessage,then clean response
+function generateResponse(query, webhook_event, res) {
+
+  generateGreetingResponse(query, webhook_event, res);
+
+  //generateWeatherResponse(global.session, webhook_event);
+
+  //sendResponse(global.session,webhook_event);
+}
+
+function generateGreetingResponse(query, webhook_event, res) {
+  if (res === null) {
+
+    //handle greeting firstly, append greeting response to global.response first.
+    //if the greeting provided by user is bye, then finish the session then clean global.session
+    if(query.bye) {
+      // append a random bye greeting to res
+      // append the contract
+      //clean global.session
+      res = byeList[Math.floor(Math.random() * byeList.length)];
+
+      if (query.contact != null) {
+        res = res + ", " + query.contact + "."
+      } else {
+        res = res + "."
+      }
+      cleanSessionData(query);
+      console.log(res);
+      sendResponse(query, webhook_event, res);
+    } else {
+
+    }
+
+
+} else {
+  // the response is not null, need to send it
+}
+}
+
+// if user provide the time and the location, then wen can provide the weather, and erase the time and location we saved.
+// if user only provide the time or the location or provide nothing, we should check with user
 function generateWeatherResponse(query, webhook_event) {
   if (query.time != null && query.location != null)  {
     //TODO query map api
@@ -271,7 +323,7 @@ function generateWeatherResponse(query, webhook_event) {
     // console.log('now:' + now);
     // console.log('query: ' + queryDate);
     let diff = new DateDiff(now, queryDate);
-    console.log(diff.days());
+    console.log("the difference between system date and user's set date is: " + diff.days());
 
     if (diff.days() <= 5)  {
       //TODO
@@ -279,22 +331,34 @@ function generateWeatherResponse(query, webhook_event) {
         global.session.weather = resp;
         //console.log("query's weather is: " + JSON.stringify(query.weather));
 
-        // Get the sender PSID
-        let sender_psid = webhook_event.sender.id;
-        console.log('Sender PSID: ' + sender_psid);
 
-        // Check if the event is a message or postback and
-        // pass the event to the appropriate handler function
-
-        if (webhook_event.message) {
-          handleMessage(sender_psid, webhook_event.message,global.session);
-        } else if (webhook_event.postback) {
-          handlePostback(sender_psid, webhook_event.postback);
-        }
       }, function(err) {
         console.log(err);
       });
-    }
+    } else {}
     //console.log('**************');
   }
+}
+
+function sendResponse(query, webhook_event, res) {
+  // Get the sender PSID
+  let sender_psid = webhook_event.sender.id;
+  console.log('Sender PSID: ' + sender_psid);
+
+  // Check if the event is a message or postback and
+  // pass the event to the appropriate handler function
+  if (webhook_event.message) {
+    handleMessage(sender_psid, webhook_event.message,res);
+  } else if (webhook_event.postback) {
+    handlePostback(sender_psid, webhook_event.postback);
+  }
+}
+
+function cleanSessionData(query) {
+  query.time = null;
+  query.greetings = null;
+  query.contact = null;
+  query.location = null;
+  query.bye = null;
+  query.weather = null;
 }
