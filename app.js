@@ -33,11 +33,11 @@ const byeList = [
 const greetingresponse = [
   'hello',
   'hi there',
-  "Hey! What's up?",
-  "How are you doing today?",
-  "How's everything?",
-  "How are things?",
-  "How's it going?"
+  "Hey, What's up",
+  "How are you doing today",
+  "How's everything",
+  "How are things",
+  "How's it going"
 ]
 // const redis = require('redis');
 
@@ -323,16 +323,35 @@ function generateGreetingResponse(query, webhook_event, res) {
           } else {
             res = res + ", " + "what's your name? I'm a weather bot, can you provide the place and the time within five days?";
           }
-          sendResponse(query, webhook_event, res);
+
         } else if (query.time != null && query.location === null) {
           if (query.contact != null) {
             res = res + ", " + query.contact + ". which place do you want to check the weather?";
-
           } else {
             res = res + ", " + ". which place do you want to check the weather?";
           }
-          sendResponse(query, webhook_event, res);
+          // sendResponse(query, webhook_event, res);
+        } else if (query.time === null && query.location != null) {
+          if (query.contact != null) {
+            res = res + ", " + query.contact + `. U wanna check today's weather or forcast within 5 days in ${query.location}?`;
+          } else {
+            res = res + ", " + `U wanna check today's weather or forcast within 5 days in ${query.location}?`;
+          }
+          // sendResponse(query, webhook_event, res);
+        } else {
+          // TODO: generate weather
+          // TODO: generate res
+          if (query.contact != null) {
+            generateWeatherResponse(query, webhook_event);
+            res = res + ", " + query.contact + `The temp today is ${query.weather.main.temp}. U can send "bye" to finish it or check other place's weather.`;
+          } else {
+            res = res + ", " + `. The temp today is ${query.weather.main.temp}. U can send "bye" to finish it or check other place's weather.`;
+          }
+          // TODO: clean weather
+          cleanWeather(query);
+          // sendResponse(query, webhook_event, res);
         }
+        sendResponse(query, webhook_event, res);
       }
 
     }
@@ -358,10 +377,8 @@ function generateWeatherResponse(query, webhook_event) {
     if (diff.days() <= 5) {
       //TODO
       weather.getWeather(query.location).then(function(resp) {
-        global.session.weather = resp;
+        query.weather = resp;
         //console.log("query's weather is: " + JSON.stringify(query.weather));
-
-
       }, function(err) {
         console.log(err);
       });
@@ -395,4 +412,8 @@ function cleanSessionData(query) {
 
 function cleanResponse(res) {
   res = null;
+}
+
+function cleanWeather(query) {
+  query.weather = null;
 }
