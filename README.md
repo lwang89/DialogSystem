@@ -32,7 +32,7 @@ I use wit.ai as my nlu/nlp module due to short time, which belongs to facebook. 
 ![image](https://user-images.githubusercontent.com/21259611/35221914-dd1993fc-ff30-11e7-9932-427e7bee8e86.png)</br>
 ![image](https://user-images.githubusercontent.com/21259611/35221977-1ba485be-ff31-11e7-9a4b-9aa08bfb13f9.png)</br>
 
-I just use some templates to generate the response. The scenarios are is as follows:</br>
+I just use some templates to generate the response. The scenarios are as follows:</br>
 ![dialogsystem_flow_chart2](https://user-images.githubusercontent.com/21259611/35222850-2728bd94-ff34-11e7-806d-3e4e2e52c5b8.png)</br>
 
 Firstly, I deployed it on glitch. However the Node.js version of it is too old. Then I tried DigitalOcean and AWS EC2(education), and I failed at all. Now, I use my local machine + ngrok to run the server.</br>
