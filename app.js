@@ -122,7 +122,6 @@ app.post('/webhook', (req, res) => {
         generateResponse(global.session, webhook_event, global.response);
       }
     });
-
     // Return a '200 OK' response to all events
     res.status(200).send('EVENT_RECEIVED');
 
@@ -146,10 +145,8 @@ app.get('/webhook', (req, res) => {
 
   // Check if a token and mode were sent
   if (mode && token) {
-
     // Check the mode and token sent are correct
     if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-
       // Respond with 200 OK and challenge token from the request
       console.log('WEBHOOK_VERIFIED');
       res.status(200).send(challenge);
@@ -163,26 +160,16 @@ app.get('/webhook', (req, res) => {
 
 // Handles messages events
 function handleMessage(sender_psid, received_message, res) {
-
   let response;
-
   // Check if the message contains text
   if (received_message.text) {
-
     // Create the payload for a basic text message
-    //this part we will response first, then add nlg part to generate a sentence.
-    //console.log("the weather we get is: " + JSON.stringify(query));
     response = {
       "text": res
-      //"text": `You sent the message: "${received_message.text}. The temp today is ${query.weather.main.temp}". sent from Leon's local machine.`
     }
     cleanResponse(res);
     //console.log('pos tagger is working now!!!!');
   } else if (received_message.attachments) {
-    // response = {
-    //   "text": 'Sorry I do not wanna process text messages for now. Wanna have a beer?'
-    // }
-
     //Gets the URL of the message attachment
     let attachment_url = received_message.attachments[0].payload.url;
 
@@ -211,17 +198,13 @@ function handleMessage(sender_psid, received_message, res) {
       }
     }
   }
-
   // Sends the response message
   callSendAPI(sender_psid, response);
-
 }
 
 // Handles messaging_postbacks events
 function handlePostback(sender_psid, received_postback) {
-
   let response;
-
   // Get the payload for the postback
   let payload = received_postback.payload;
 
@@ -264,7 +247,6 @@ function callSendAPI(sender_psid, response) {
       console.error("Unable to send message:" + err);
     }
   });
-
 }
 
 function firstEntity(nlp, name) {
@@ -285,11 +267,10 @@ const generateResponse = async (query, webhook_event, res) => {
       } else {
         res = res + "."
       }
+
       cleanSessionData(query);
       console.log(res);
     } else {
-      // TODO
-      // check if there is a greeting
       if (query.greetings) {
         console.log("greetings we get is: " + query.greetings);
         res = greetingresponse[Math.floor(Math.random() * greetingresponse.length)];
@@ -313,13 +294,12 @@ const generateResponse = async (query, webhook_event, res) => {
             res = res + ", " + `U wanna check today's weather or forcast within 5 days in ${query.location}?`;
           }
         } else {
-          // TODO: generate weather
           await generateWeatherResponse(query, webhook_event);
-          // TODO: generate res
+
           if (query.contact != null) {
-            res = res + ", " + query.contact + `. The current temp  is ${query.weather.main.temp} ℉ in ${query.location}. U can send "bye" to finish it or check other place's weather.`;
+            res = res + ", " + query.contact + `. The temp  is ${query.weather.main.temp} ℉ in ${query.location}. U can send "bye" to finish it or check other place's weather.`;
           } else {
-            res = res + ", " + `The current temp today is ${query.weather.main.temp} ℉ in ${query.location}. U can send "bye" to finish it or check other place's weather.`;
+            res = res + ", " + `The temp today is ${query.weather.main.temp} ℉ in ${query.location}. U can send "bye" to finish it or check other place's weather.`;
           }
           cleanWeather(query);
         }
@@ -332,8 +312,8 @@ const generateResponse = async (query, webhook_event, res) => {
 // if user provide the time and the location, then wen can provide the weather, and erase the time and location we saved.
 // if user only provide the time or the location or provide nothing, we should check with user
 const generateWeatherResponse = async (query, webhook_event) => {
+
   if (query.time != null && query.location != null) {
-    //TODO query map api
     let now = new Date();
     let timestamp = Date.parse(query.time);
     let queryDate = new Date(timestamp);
@@ -347,9 +327,8 @@ const generateWeatherResponse = async (query, webhook_event) => {
       let resp = await weather.getWeather(query.location);
       query.weather = resp;
     } else if (diff.days() <= 5 && diff.days() > 1) {
-      // TODO: return morning(9AM)'s forecast
-      //let morning = queryDate.setHours(9);
       let forecastResp = await weather.getForecast(query.location);
+
       forecastResp.list.forEach(element => {
         let dt_time = new Date(element.dt_txt);
         // console.log('1111111' + element.dt);
