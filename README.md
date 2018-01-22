@@ -44,14 +44,15 @@ Results are as follows:
 ![441516628746_ pic_hd](https://user-images.githubusercontent.com/21259611/35223808-95f1d820-ff37-11e7-85e8-003613565123.jpg)</br>
 ![451516628746_ pic](https://user-images.githubusercontent.com/21259611/35223812-9833413c-ff37-11e7-8dcf-336156ec46f5.jpg)</br>
 The signial of ending the session is user send a bye greeting to bot.</br>
-## Problems I faced
 ## Future Work
-1. multi user
-  use DB in memory, redis or mongoDB
+### 1. Support multi user;
+  Use DB in memory, redis or mongoDB</br>
 
-2. using nlg module to generate better sentences
+### 2. Use nlg module to generate better sentences;
 
-3. using pos tagger to replace nlp
+### 3. Add more options for users to check weather details;
+
+### 4.  Try design and implement nlu part;
 
 ## Refer
 [1] Zhou Yu, Alexandros Papangelis, Alexander Rudnicky, TickTock: Engagement Awareness in a non-Goal-Oriented Multimodal Dialogue System, AAAI Spring Symposium on Turn-taking and Coordination in Human-Machine Interaction 2015.
