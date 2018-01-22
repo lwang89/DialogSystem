@@ -317,9 +317,9 @@ const generateResponse = async (query, webhook_event, res) => {
           await generateWeatherResponse(query, webhook_event);
           // TODO: generate res
           if (query.contact != null) {
-            res = res + ", " + query.contact + `. The temp today is ${query.weather.main.temp} ℉ in ${query.weather.name}. U can send "bye" to finish it or check other place's weather.`;
+            res = res + ", " + query.contact + `. The current temp  is ${query.weather.main.temp} ℉ in ${query.location}. U can send "bye" to finish it or check other place's weather.`;
           } else {
-            res = res + ", " + `The temp today is ${query.weather.main.temp} ℉ in ${query.weather.name}. U can send "bye" to finish it or check other place's weather.`;
+            res = res + ", " + `The current temp today is ${query.weather.main.temp} ℉ in ${query.location}. U can send "bye" to finish it or check other place's weather.`;
           }
           cleanWeather(query);
         }
@@ -338,25 +338,39 @@ const generateWeatherResponse = async (query, webhook_event) => {
     let timestamp = Date.parse(query.time);
     let queryDate = new Date(timestamp);
     // console.log('now:' + now);
-    // console.log('query: ' + queryDate);
-    let diff = new DateDiff(now, queryDate);
+    console.log('query: ' + queryDate);
+    let diff = new DateDiff(queryDate, now);
     console.log("the difference between system date and user's set date is: " + diff.days());
 
-    if (diff.days() <= 1) {
+    if (diff.days() <= 1 && diff.days() >= -1) {
       //TODO : check weather today
       let resp = await weather.getWeather(query.location);
       query.weather = resp;
-      // weather.getWeather(query.location).then(function(resp) {
-      //   query.weather = resp;
-      //   //console.log("query's weather is: " + JSON.stringify(query.weather));
-      // }, function(err) {
-      //   console.log(err);
-      // });
+    } else if (diff.days() <= 5 && diff.days() > 1) {
+      // TODO: return morning(9AM)'s forecast
+      //let morning = queryDate.setHours(9);
+      let forecastResp = await weather.getForecast(query.location);
+      forecastResp.list.forEach(element => {
+        let dt_time = new Date(element.dt_txt);
+        // console.log('1111111' + element.dt);
+        console.log("the time we get is: " + dt_time);
+        console.log("the time we have is: " + queryDate);
+        let timeDiff = new DateDiff(dt_time, queryDate);
+        if (timeDiff.seconds() === 0) {
+          console.log('111111111 we are here!!!! ');
+          query.weather = element;
+        }
+      });
+
     } else {
-      // TODO: check forcast
-
+      // TODO: later we can add function for checking history weather
+      // this is just a case to return response
+      query.weather = {
+        "main": {
+          "temp": ': "hmmmmm, It looks like the date you input is not correct.""',
+        },
+      }
     }
-
   }
 }
 

@@ -1,7 +1,7 @@
 {
-  "name": "messenger weather chatbot",
+  "name": "messenger_weather_chatbot",
   "version": "1.0.0",
-  "description": "a weather bot ",
+  "description": "a_weather_bot ",
   "main": "app.js",
   "scripts": {
     "start": "node app.js"
