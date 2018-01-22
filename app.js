@@ -273,7 +273,7 @@ function firstEntity(nlp, name) {
 
 //append greeting and weather data to response
 //at last, send response to handleMessage,then clean response
-function generateResponse(query, webhook_event, res) {
+const generateResponse = async (query, webhook_event, res) => {
   if (res === null) {
     //handle greeting firstly, append greeting response to global.response first.
     //if the greeting provided by user is bye, then finish the session then clean global.session
@@ -314,12 +314,12 @@ function generateResponse(query, webhook_event, res) {
           }
         } else {
           // TODO: generate weather
-          generateWeatherResponse(query, webhook_event);
+          await generateWeatherResponse(query, webhook_event);
           // TODO: generate res
           if (query.contact != null) {
-            res = res + ", " + query.contact + `. The temp today is ${query.weather.main.temp} ℉ in ${query.location}. U can send "bye" to finish it or check other place's weather.`;
+            res = res + ", " + query.contact + `. The temp today is ${query.weather.main.temp} ℉ in ${query.weather.name}. U can send "bye" to finish it or check other place's weather.`;
           } else {
-            res = res + ", " + `The temp today is ${query.weather.main.temp} ℉ in ${query.location}. U can send "bye" to finish it or check other place's weather.`;
+            res = res + ", " + `The temp today is ${query.weather.main.temp} ℉ in ${query.weather.name}. U can send "bye" to finish it or check other place's weather.`;
           }
           cleanWeather(query);
         }
@@ -331,7 +331,7 @@ function generateResponse(query, webhook_event, res) {
 
 // if user provide the time and the location, then wen can provide the weather, and erase the time and location we saved.
 // if user only provide the time or the location or provide nothing, we should check with user
-function generateWeatherResponse(query, webhook_event) {
+const generateWeatherResponse = async (query, webhook_event) => {
   if (query.time != null && query.location != null) {
     //TODO query map api
     let now = new Date();
@@ -344,12 +344,14 @@ function generateWeatherResponse(query, webhook_event) {
 
     if (diff.days() <= 1) {
       //TODO : check weather today
-      weather.getWeather(query.location).then(function(resp) {
-        query.weather = resp;
-        //console.log("query's weather is: " + JSON.stringify(query.weather));
-      }, function(err) {
-        console.log(err);
-      });
+      let resp = await weather.getWeather(query.location);
+      query.weather = resp;
+      // weather.getWeather(query.location).then(function(resp) {
+      //   query.weather = resp;
+      //   //console.log("query's weather is: " + JSON.stringify(query.weather));
+      // }, function(err) {
+      //   console.log(err);
+      // });
     } else {
       // TODO: check forcast
 
