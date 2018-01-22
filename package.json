@@ -1,16 +1,16 @@
 {
-  "name": "messenger-quick-start",
+  "name": "messenger_weather_chatbot",
   "version": "1.0.0",
-  "description": "An example webhook for Facebook Messenger quick start tutorial.",
+  "description": "a_weather_bot ",
   "main": "app.js",
   "scripts": {
     "start": "node app.js"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/fbsamples/messenger-platform-samples.git"
+    "url": "https://github.com/lwang89/DialogSystem"
   },
-  "author": "Facebook",
+  "author": "Leon Wang",
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.15.0",
